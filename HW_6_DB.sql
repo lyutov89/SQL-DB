@@ -117,9 +117,23 @@ VALUES
  -- и на первых порах нормально сомневаться в том, что делаешь.... 
  -- Запрос: 
  
- SELECT user_id, 
+ -- через запрос с использованием JOIN
+ 
+ SELECT 
+  orders.user_id,
+  u2.name
+ FROM
+  users AS u2 JOIN orders AS orders 
+ ON 
+  u2.id = orders.user_id; 
+ 
+ -- через сложный запрос. 
+ 
+  SELECT user_id, 
  (SELECT name FROM users u2 WHERE id = user_id) AS 'name'
  FROM orders; 
+
+-- продолжение базы данных. 
 
 DROP TABLE IF EXISTS orders_products;
 CREATE TABLE orders_products (
