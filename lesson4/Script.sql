@@ -2,10 +2,12 @@ USE vk;
 
 SHOW TABLES;
 
---users
+
+-- users
+
 SELECT * FROM users LIMIT 10;
 
---profiles
+-- profiles
 
 SELECT * FROM profiles LIMIT 10;
 
@@ -13,14 +15,14 @@ CREATE TEMPORARY TABLE sex(sex CHAR(1));
 INSERT INTO sex VALUES ('M'), ('F');
 UPDATE profiles SET sex = (SELECT sex FROM sex ORDER BY RAND() LIMIT 1);
 
---messages 
+-- messages 
 
 SELECT * FROM messages LIMIT 10;
 UPDATE messages SET
 	from_user_id = FLOOR(1 + (RAND() * 100)),
 	to_user_id = FLOOR(1 + (RAND() * 100));
 
---mediatypes
+-- mediatypes
 
 SELECT * FROM media_types LIMIT 10;
 DELETE FROM media_types;
