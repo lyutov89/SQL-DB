@@ -21,3 +21,28 @@ COMMIT;
 CREATE VIEW perform_name AS SELECT name, (SELECT name FROM catalogs WHERE id = catalog_Id) FROM products; 
 
 SELECT * FROM perform_name;  
+
+Создайте хранимую функцию hello(), которая будет возвращать приветствие, в зависимости от текущего времени суток. 
+С 6:00 до 12:00 функция должна возвращать фразу "Доброе утро", с 12:00 до 18:00 функция должна возвращать фразу "Добрый день",
+с 18:00 до 00:00 — "Добрый вечер", с 00:00 до 6:00 — "Доброй ночи".
+
+DELIMITER //
+DROP FUNCTION IF EXISTS hello// 
+CREATE FUNCTION hello ()
+RETURNS VARCHAR(255) DETERMINISTIC
+BEGIN 
+DECLARE hour INT; 
+SET hour = HOUR(NOW()); 
+CASE
+WHEN hour IN (0,6) THEN 
+RETURN "Good evening";
+WHEN hour IN (7,12) THEN
+RETURN "Good morning";
+WHEN hour IN (13,17) THEN
+RETURN "Good day";
+WHEN hour IN (18,24)  THEN
+RETURN "Good evening";
+ELSE 
+RETURN "Wrong input, please input it again"; 
+END CASE;
+END//
