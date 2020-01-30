@@ -63,7 +63,9 @@ TRUNCATE friendship_statuses;
 INSERT INTO friendship_statuses (name)
   VALUES ('Requested'), ('Confirmed');
  
-UPDATE friendship SET status_id = FLOOR(1 + (RAND() * 2));  
+UPDATE friendship SET status_id = FLOOR(1 + (RAND() * 3));  
+
+UPDATE posts SET media_types = FLOOR(1 + (RAND() * 3));  
 
 -- communities
 SELECT * FROM communities LIMIT 10;
