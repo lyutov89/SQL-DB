@@ -4,21 +4,29 @@ sample.users. Используйте транзакции.
 
  План транзакции: 
 
-1) Выбираем (SELECT) таблицу с заданной ячейкой в нужной базе данных (из таблицы shop.users) 
+1) Выбираем (SELECT) таблицу с заданной строкой в нужной базе данных (из таблицы shop.users) 
 2) Чтобы вставить (INSERT) эту ячейку в базу данных sample нужно сначала удалить эту ячейку. Делаем DELETE из sample. 
+
+*UPD. Здесь наверное неправильно понял задание. Мне показалось, что нужно переместить данные из одной ячейки в другую. Но нет, из всей строки. 
+Поэтому вот такой апдейт: 
 
 START TRANSACTION; 
 
-SELECT id FROM shop.users WHERE id = 1;  
-DELETE id FROM sample.users WHERE id = 1; 
-UPDATE sample.users(id) SET id = 1 WHERE id is NULL; 
+INSERT INTO sample.users (SELECT * FROM shop.users WHERE id = 1); 
+DELETE FROM shop.users WHERE id = 1 LIMIT 1; 
 
 COMMIT; 
 
 Создайте представление, которое выводит название name товарной позиции из таблицы products
 и соответствующее название каталога name из таблицы catalogs. 
 
-CREATE VIEW perform_name AS SELECT name, (SELECT name FROM catalogs WHERE id = catalog_Id) FROM products; 
+UPD. Как и было рекомендовано, сделал через JOIN...
+
+CREATE VIEW perform_name AS 
+SELECT products.name, catalogs.name as CATALOGS
+FROM products
+JOIN catalogs AS c
+ON products.catalog_id = c.id
 
 SELECT * FROM perform_name;  
 
@@ -29,7 +37,7 @@ SELECT * FROM perform_name;
 DELIMITER //
 DROP FUNCTION IF EXISTS hello// 
 CREATE FUNCTION hello ()
-RETURNS VARCHAR(255) DETERMINISTIC
+RETURNS VARCHAR(255) NO SQL 
 BEGIN 
 DECLARE hour INT; 
 SET hour = HOUR(NOW()); 
