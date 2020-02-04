@@ -293,7 +293,7 @@ SELECT CASE (sex)
     COUNT(*) FROM (SELECT user_id as user, 
          (SELECT sex FROM profiles WHERE user_id = user) as sex FROM likes l2 ) dummy_table
 GROUP BY sex 
-ORDER BY COUNT(*) DESC LIMIT 1; 
+ORDER BY COUNT(*) DESC; 
 
 -- 5. Найти 10 пользователей, которые проявляют наименьшую активность в использовании 
 -- социальной сети.
@@ -376,18 +376,27 @@ SELECT id, CONCAT (first_name, ' ', last_name) AS user,
    
    -- из всех друзей выбираем с помощью concat нужного нам пользователя.  
    
+    USE vk; 
+   
     SELECT * FROM messages m2 WHERE (from_user_id = 92 OR to_user_id = 92); 
    
     SELECT * FROM friendship WHERE (user_id = 92 or friend_id = 92); 
    
-    SELECT (SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = from_user_id) AS friend, 
+   -- UPD. Поправлено. Главный запрос идет по поиску users, поэтому ищем по нему. Последовательно присоединяем условия 
+   -- дружбы и отправки сообщений. 
+   
+    SELECT (SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = messages.from_user_id) AS friend, 
    	COUNT(*) AS all_messages
-      FROM messages m2
-        LEFT JOIN friendship
-          ON friendship.friend_id = m2.to_user_id 
-             OR friendship.user_id = m2.to_user_id
-      WHERE to_user_id = 92 
-    GROUP BY from_user_id, to_user_id
+      FROM users
+        JOIN friendship
+          ON friendship.friend_id = users.id 
+             OR friendship.user_id = users.id
+        JOIN vk.messages
+          ON messages.to_user_id = users.id
+             AND (messages.from_user_id = friendship.friend_id
+                 OR messages.from_user_id = friendship.user_id)
+      WHERE users.id = 92 
+    GROUP BY messages.from_user_id
     ORDER BY all_messages DESC LIMIT 1;
          
      
@@ -404,7 +413,7 @@ SELECT id, CONCAT (first_name, ' ', last_name) AS user,
    ORDER BY birthday DESC
    LIMIT 10; 
  
- -- считаем сумму лайков. Не могу найти ошибку. Проверял себя через Select (предыдущее дз) - вышло 3. Сейчас 14. 
+ -- ((считаем сумму лайков. Не могу найти ошибку. Проверял себя через Select (предыдущее дз) - вышло 3. Сейчас 14.)) 
  
 
  
@@ -420,6 +429,21 @@ SELECT id, CONCAT (first_name, ' ', last_name) AS user,
    ORDER BY birthday DESC
    LIMIT 10) AS counted_likes;
 
+  -- UPD. Поправлено. Правильный запрос (переработанный): Считаем по профилям, а не по лайкам.
+  -- Все остальное было до этого верно, в 
+  -- том числе и LEFT JOIN.  
+  
+   SELECT SUM(likes_on_user) AS likes_sum FROM (
+   SELECT COUNT(DISTINCT(likes.id)) AS likes_on_user
+   FROM profiles
+  	  LEFT JOIN likes
+  	    ON likes.target_id = profiles.user_id
+           AND target_type_id = 2
+   GROUP BY profiles.user_id
+   ORDER BY profiles.birthday DESC
+   LIMIT 10) AS counted_likes;
+  
+  
   
   -- 4. Определить кто больше поставил лайков (всего) - мужчины или женщины?
   
@@ -427,34 +451,45 @@ SELECT id, CONCAT (first_name, ' ', last_name) AS user,
 
 
  -- Если мы начинаем делать поиск по профилям, то результат будет неверный. Не совпадает с результами первого дз. 
-   
-   SELECT sex, COUNT(*) AS counted_likes
-   	 FROM profiles
-   	 	LEFT JOIN likes
-   	 		ON likes.user_id = profiles.user_id
-   GROUP BY sex
-   ORDER BY COUNT(*) DESC LIMIT 1;
+  
+  
+ -- UPD. Поправлено. Запрос выполнен по лайкам, далее к нему присоединяются профили. Сравнение от лайков. 
+ 
+   SELECT profiles.sex AS SEX,
+     COUNT(likes.id) AS counted_likes
+   	 FROM likes
+   	 	JOIN profiles
+   	 	  ON likes.user_id = profiles.user_id
+        GROUP BY profiles.sex
+        ORDER BY counted_likes DESC LIMIT 1;
   
 
 -- 5. Найти 10 пользователей, которые проявляют наименьшую активность в использовании 
 -- социальной сети.
 
--- Комментарий. И снова где-то ошибка. Я проверял на предыдущем ДЗ, выборка вышла совсем другая. 
+-- (( Комментарий. И снова где-то ошибка. Я проверял на предыдущем ДЗ, выборка вышла совсем другая. 
 -- Логику всех запросов понимаю, как запрограммировать и превратить в запрос - тоже (структурно). 
 -- Но результат я пока получить не могу. 
--- Пока на этом остановлюсь. Жду разбора, а потом уже доработаю и найду ошибки. 
+-- Пока на этом остановлюсь. Жду разбора, а потом уже доработаю и найду ошибки. ))
+
+       -- UPD. Поправлено. Комментарий. В измененном запросе считаем идентификаторы, поскольку при объединении множества может сложиться
+       -- ситуация, когда у одного пользователя могут быть отправлены сообщения, а вот лайков ноль. Эту ситуацию нужно 
+       -- избежать. 
     
-     SELECT u2.id, first_name, last_name, COUNT(*) AS activity 
+     SELECT u2.id, first_name, last_name, 
+     COUNT(DISTINCT messages.id) + 
+     COUNT(DISTINCT likes.id) + 
+     COUNT(DISTINCT friendship.user_id) AS activity 
        FROM users u2
          LEFT JOIN messages
-           ON messages.from_user_id = u2.id
+           ON u2.id = messages.from_user_id
          LEFT JOIN likes 
-           ON likes.user_id = u2.id
+           ON u2.id = likes.user_id
          LEFT JOIN friendship 
-           ON friendship.friend_id = u2.id
+           ON u2.id = friendship.friend_id
               AND friendship.status_id = 'confirmed'
      GROUP BY u2.id, first_name, last_name
-     ORDER BY activity;  
+     ORDER BY activity ASC LIMIT 10;  
      
      
      SELECT * FROM users u2;   
